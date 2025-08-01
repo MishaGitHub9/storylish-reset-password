@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password - Storylish</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1E0B37 0%, #2D1B69 50%, #1E0B37 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #1E0B37;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007AFF;
+            background: #fff;
+        }
+
+        .form-group input.error {
+            border-color: #ff3b30;
+        }
+
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .btn:hover {
+            background: #0056CC;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #007AFF;
+            border: 2px solid #007AFF;
+        }
+
+        .btn-secondary:hover {
+            background: #007AFF;
+            color: white;
+        }
+
+        .message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007AFF;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .password-strength {
+            margin-top: 8px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            width: 0%;
+        }
+
+        .strength-weak { background: #ff3b30; }
+        .strength-medium { background: #ff9500; }
+        .strength-strong { background: #34c759; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Storylish</h1>
+            <p>Reset your password</p>
+        </div>
+
+        <div id="message" class="message" style="display: none;"></div>
+
+        <form id="resetForm">
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required
+                    minlength="8"
+                    placeholder="Enter your new password"
+                >
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="strengthBar"></div>
+                </div>
+                <div class="password-requirements">
+                    Password must be at least 8 characters long
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    required
+                    placeholder="Confirm your new password"
+                >
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Reset Password
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Updating your password...</p>
+        </div>
+
+        <button class="btn btn-secondary" id="backBtn" onclick="goBack()">
+            Back to App
+        </button>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://eaergmvcccpiplbsclfv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhZXJnbXZjY2NwaXBsYnNjbGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MTAzMzEsImV4cCI6MjA2OTM4NjMzMX0.PA_4fAgYn2TV3_-DkmNFFRDYYRDCggeIPMWxphSlT70';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const type = urlParams.get('type');
+
+        // Check if we have valid tokens
+        if (!accessToken || !refreshToken || type !== 'recovery') {
+            showMessage('Invalid password reset link. Please try again.', 'error');
+            document.getElementById('resetForm').style.display = 'none';
+            document.getElementById('backBtn').style.display = 'none';
+        }
+
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            return strength;
+        }
+
+        function updatePasswordStrength(password) {
+            const strengthBar = document.getElementById('strengthBar');
+            const strength = checkPasswordStrength(password);
+            
+            strengthBar.className = 'password-strength-bar';
+            
+            if (strength <= 2) {
+                strengthBar.style.width = '33%';
+                strengthBar.classList.add('strength-weak');
+            } else if (strength <= 3) {
+                strengthBar.style.width = '66%';
+                strengthBar.classList.add('strength-medium');
+            } else {
+                strengthBar.style.width = '100%';
+                strengthBar.classList.add('strength-strong');
+            }
+        }
+
+        // Show message function
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+        }
+
+        // Hide message function
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+
+        // Form submission
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validation
+            if (password.length < 8) {
+                showMessage('Password must be at least 8 characters long', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match', 'error');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('submitBtn').disabled = true;
+            hideMessage();
+            
+            try {
+                // Set session with tokens
+                const { error: sessionError } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                });
+                
+                if (sessionError) {
+                    throw sessionError;
+                }
+                
+                // Update password
+                const { error: updateError } = await supabase.auth.updateUser({
+                    password: password
+                });
+                
+                if (updateError) {
+                    throw updateError;
+                }
+                
+                // Success
+                showMessage('Password updated successfully! You can now sign in with your new password.', 'success');
+                document.getElementById('resetForm').style.display = 'none';
+                document.getElementById('loading').classList.remove('show');
+                
+            } catch (error) {
+                console.error('Error updating password:', error);
+                showMessage('Error updating password. Please try again.', 'error');
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', (e) => {
+            updatePasswordStrength(e.target.value);
+        });
+
+        // Go back to app
+        function goBack() {
+            // Try to open the app, fallback to a generic URL
+            try {
+                window.location.href = 'stories.ai://';
+            } catch (e) {
+                window.location.href = 'https://your-app-domain.com';
+            }
+        }
+
+        // Auto-focus password field
+        document.getElementById('password').focus();
+    </script>
+</body>
+</html> 
