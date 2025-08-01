@@ -188,6 +188,21 @@
         .strength-weak { background: #ff3b30; }
         .strength-medium { background: #ff9500; }
         .strength-strong { background: #34c759; }
+
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #666;
+            display: none;
+        }
+
+        .debug-info.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -195,6 +210,11 @@
         <div class="logo">
             <h1>Storylish</h1>
             <p>Reset your password</p>
+        </div>
+
+        <div id="debugInfo" class="debug-info">
+            <strong>Debug Info:</strong><br>
+            <span id="debugText"></span>
         </div>
 
         <div id="message" class="message" style="display: none;"></div>
@@ -248,6 +268,9 @@
         // Initialize Supabase
         const supabaseUrl = 'https://eaergmvcccpiplbsclfv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhZXJnbXZjY2NwaXBsYnNjbGZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MTAzMzEsImV4cCI6MjA2OTM4NjMzMX0.PA_4fAgYn2TV3_-DkmNFFRDYYRDCggeIPMWxphSlT70';
+        
+        console.log('Initializing Supabase with:', { supabaseUrl, supabaseKey: supabaseKey.substring(0, 20) + '...' });
+        
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // Get URL parameters
@@ -256,11 +279,38 @@
         const refreshToken = urlParams.get('refresh_token');
         const type = urlParams.get('type');
 
+        console.log('URL parameters:', { 
+            accessToken: accessToken ? 'EXISTS' : 'MISSING',
+            refreshToken: refreshToken ? 'EXISTS' : 'MISSING',
+            type: type || 'NOT_SET'
+        });
+
+        // Show debug info
+        function showDebugInfo() {
+            const debugInfo = document.getElementById('debugInfo');
+            const debugText = document.getElementById('debugText');
+            
+            debugText.innerHTML = `
+                URL: ${window.location.href}<br>
+                Access Token: ${accessToken ? 'Present' : 'Missing'}<br>
+                Refresh Token: ${refreshToken ? 'Present' : 'Missing'}<br>
+                Type: ${type || 'Not set'}<br>
+                Supabase URL: ${supabaseUrl}<br>
+                Supabase Key: ${supabaseKey.substring(0, 20)}...
+            `;
+            
+            debugInfo.classList.add('show');
+        }
+
         // Check if we have valid tokens
         if (!accessToken || !refreshToken || type !== 'recovery') {
+            console.log('Invalid tokens detected');
+            showDebugInfo();
             showMessage('Invalid password reset link. Please try again.', 'error');
             document.getElementById('resetForm').style.display = 'none';
             document.getElementById('backBtn').style.display = 'none';
+        } else {
+            console.log('Valid tokens detected');
         }
 
         // Password strength checker
@@ -330,6 +380,8 @@
             hideMessage();
             
             try {
+                console.log('Setting session with tokens...');
+                
                 // Set session with tokens
                 const { error: sessionError } = await supabase.auth.setSession({
                     access_token: accessToken,
@@ -337,8 +389,11 @@
                 });
                 
                 if (sessionError) {
+                    console.error('Session error:', sessionError);
                     throw sessionError;
                 }
+                
+                console.log('Session set successfully, updating password...');
                 
                 // Update password
                 const { error: updateError } = await supabase.auth.updateUser({
@@ -346,8 +401,11 @@
                 });
                 
                 if (updateError) {
+                    console.error('Update error:', updateError);
                     throw updateError;
                 }
+                
+                console.log('Password updated successfully');
                 
                 // Success
                 showMessage('Password updated successfully! You can now sign in with your new password.', 'success');
@@ -356,7 +414,7 @@
                 
             } catch (error) {
                 console.error('Error updating password:', error);
-                showMessage('Error updating password. Please try again.', 'error');
+                showMessage(`Error updating password: ${error.message}`, 'error');
                 document.getElementById('loading').classList.remove('show');
                 document.getElementById('submitBtn').disabled = false;
             }
